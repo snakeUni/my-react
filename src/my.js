@@ -9,6 +9,17 @@ function isEvent(propName) {
   );
 }
 
+function shallowDiff(oldProps, newProps) {
+  const diffProps = new Set([
+    ...Object.keys(oldProps),
+    ...Object.keys(newProps)
+  ]);
+  const changedProps = Array.from(diffProps).filter(
+    name => oldProps[name] !== newProps[name]
+  );
+  return changedProps;
+}
+
 const hostConfig = {
   // 必须增加否则 appendAllChildren 会报错
   supportsMutation: true,
@@ -73,6 +84,38 @@ const hostConfig = {
   finalizeInitialChildren() {},
   appendChildToContainer(container, child) {
     container.appendChild(child);
+  },
+  // 增加不然会报错在更新数据的时候
+  removeChildFromContainer(container, child) {
+    container.removeChild(child);
+  },
+  prepareUpdate(
+    instance,
+    type,
+    oldProps,
+    newProps,
+    rootContainerInstance,
+    hostContext
+  ) {
+    return shallowDiff(oldProps, newProps);
+  },
+  commitUpdate(
+    instance,
+    updatePayload,
+    type,
+    oldProps,
+    newProps,
+    finishedWork
+  ) {
+    updatePayload.forEach(name => {
+      if (name === 'children') return;
+      if (name === 'style') {
+        const style = Object.keys(newProps.style).reduce((acc, styleName) => {
+          acc[styleName] = newProps.style[styleName];
+          return acc;
+        }, {});
+      }
+    });
   }
 };
 
